@@ -138,7 +138,7 @@ def find_infall_snapshots(halo_tree, halo_tid, last_snap=600, host_no=0):
     main_r = np.append(np.zeros(to_pad, dtype=int), main_r)
     
     # finding all indices of the subhalo
-    halo_tids = find_hal_ind_all(halo_tree, halo_tid, last_snap=last_snap)
+    halo_tids = find_hal_ind_all(halo_tree, halo_tid, last_snap=last_snap, host_no=host_no)
     
     # differences between central distance of the subhalo and virial radius of the host
     # at all snapshots where the subhalo exists
@@ -161,7 +161,7 @@ def find_infall_snapshots(halo_tree, halo_tid, last_snap=600, host_no=0):
 #------------------------------------------
 # Star particle tracking functions
 #------------------------------------------
-def find_present_stars_ind(simdir, snap, st_i, last_snap=600):
+def find_present_stars_ind(simdir, snap, st_i, last_snap=600, host_no=0):
     '''
     find indices of stars at present day (aka snap = last_snap)
     
@@ -182,7 +182,10 @@ def find_present_stars_ind(simdir, snap, st_i, last_snap=600):
 
     except Exception as e:
         #print(e)
-        part = gizmo.io.Read.read_snapshots(['star'], 'snapshot', snap, sim, assign_formation_coordinates=True);
+        if(host_no == 0):
+            part = gizmo.io.Read.read_snapshots(['star'], 'snapshot', snap, sim, assign_formation_coordinates=True);
+        else:
+            part = gizmo.io.Read.read_snapshots(['star'], 'snapshot', snap, sim, host_number=2, assign_formation_coordinates=True);
         pointers = part.Pointer.get_pointers(species_name_from='star', species_names_to='star', forward=True)
         ind = pointers[st_i]
         #part = read_part(sim, snap, pointer=True)
@@ -293,7 +296,7 @@ def find_streams(simdir, last_snap, start_snap, snap_interval=10,  host_no=0, ha
 
     if halo_tree is None:
         halo_tree = rockstar.io.IO.read_tree(simulation_directory=simdir, rockstar_directory = rockdir, species='star')
-        
+
     # read in star particles at present day
     part_z0 = gizmo.io.Read.read_snapshots(['star'], 'redshift', 0, simdir, assign_formation_coordinates=True)
     
@@ -330,7 +333,7 @@ def find_streams(simdir, last_snap, start_snap, snap_interval=10,  host_no=0, ha
         hindices_condition2 = halo_tree.prop('host.distance.total') < rad
         
     else:
-        
+
         hindices_condition1 = halo_tree.prop('host2.distance.total') > 0
         hindices_condition2 = halo_tree.prop('host2.distance.total') < rad
 
@@ -369,7 +372,7 @@ def find_streams(simdir, last_snap, start_snap, snap_interval=10,  host_no=0, ha
 
             # recover all stars
             ii_max = infall_snaps_i[0]
-            st_recov = np.array(recover_stars_union_complete(simdir, halo_tree, ii_max, samplings=None, last_snap=last_snap))
+            st_recov = np.array(recover_stars_union_complete(simdir, halo_tree, ii_max, samplings=None, snapshot_interval=snap_interval, last_snap=last_snap, host_no=host_no))
             
             #print(f'# Stars found: {len(st_recov)}')
             all_st.append(st_recov)
@@ -394,7 +397,7 @@ def find_streams(simdir, last_snap, start_snap, snap_interval=10,  host_no=0, ha
 #-----------------------------------------
 # location of the outputs to be saved
 SAVE_LOC = '/data9/work/Aritra/substructure_catalogs/'   # Save location of the catalogs (change accordingly)
-rockdir = 'halo/rockstar_dm_highZ/'                     # Halo directory (change accordingly)
+rockdir = 'halo/rockstar_dm/'                     # Halo directory (change accordingly)
 
 #------------------------------------------------------------
 # Running the pipeline to get the unclassified substructures

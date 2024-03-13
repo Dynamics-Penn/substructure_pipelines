@@ -226,7 +226,7 @@ def dispersion_cut(pos, vel, stellar_mass):
 #------------------------------------------------------
 # Function to perfrom the classification at z = 0
 #------------------------------------------------------
-def classify_substructures(unclassified, host_no):
+def classify_substructures(unclassified, host_no, simdir):
     
     all_st = []
     present_stellar_mass = []
@@ -239,7 +239,8 @@ def classify_substructures(unclassified, host_no):
     first_infall_snap_index = []
     last_infall_snap_index = []
 
-    halo_z0 = halo.io.IO.read_catalogs('redshift', 0, simulation_directory=simdir, rockstar_directory=rockdir)
+    halo_z0 = rockstar.io.IO.read_catalogs('redshift', 0, simulation_directory=simdir, rockstar_directory=rockdir)
+    part_z0 = gizmo.io.Read.read_snapshots(['star'], 'redshift', 0, simdir, assign_formation_coordinates=True, assign_hosts=True)
     
     if(host_no == 0):
         rad = halo_z0['radius'][np.argmax(halo_z0['star.mass'])]
@@ -247,6 +248,7 @@ def classify_substructures(unclassified, host_no):
         rad = np.sort(halo_z0['radius'])[-2]
         
     obj_inds = []
+    len_obj = len(unclassified['index_at_sample'])
 
     for i in tqdm(range(len_obj)):
 
@@ -263,8 +265,13 @@ def classify_substructures(unclassified, host_no):
         last_infall_snap.append(unclassified['last_infall_snap'][i])
         last_infall_snap_index.append(unclassified['last_infall_snap_index'][i])
 
-        pos = part_z0['star'].prop('host.distance')[st]
-        vel = part_z0['star'].prop('host.velocity')[st]
+        if(host_no == 0):
+            pos = part_z0['star'].prop('host.distance')[st]
+            vel = part_z0['star'].prop('host.velocity')[st]
+            
+        else:
+            pos = part_z0['star'].prop('host2.distance')[st]
+            vel = part_z0['star'].prop('host2.velocity')[st]
 
         if nstar_cut(st):
 
@@ -361,10 +368,8 @@ def main(simname, host_no):
     with open(unclassified_fsave, 'rb') as f:
         unclassified_catalog = pickle.load(f)
     
-    part_z0 = gizmo.io.Read.read_snapshots(['star'], 'redshift', 0, simdir, assign_formation_coordinates=True, assign_hosts=True)
-    
     classified_catalog = {}
-    classified_catalog = classify_substructures(unclassified_catalog.copy(), host_no)
+    classified_catalog = classify_substructures(unclassified_catalog.copy(), host_no, simdir)
     
     
     #----------------------------------------
@@ -390,6 +395,6 @@ if __name__ == "__main__":
         
     else:
         simname = sys.argv[1]
-        host_no = sys.argv[2]
+        host_no = int(sys.argv[2])
     
     main(simname, host_no)

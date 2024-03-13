@@ -403,7 +403,10 @@ rockdir = 'halo/rockstar_dm_highZ/'                     # Halo directory (change
 def main(simname, start_snap, snap_interval, host_no):
     
     # simname = Simulation name
-    simdir = f'/data10/fire2/metaldiff/{simname}/'   # Simulation directory
+    if(simname == 'm12_elvis_RomeoJuliet_res3500' or simname == 'm12_elvis_ThelmaLouise_res4000' or simname == 'm12_elvis_RomulusRemus_res4000'):
+        simdir = f'/data11/fire2-pairs/{simname}/'       # Simulation directory
+    else:
+        simdir = f'/data10/fire2/metaldiff/{simname}/'   # Simulation directory
     
     # host_no = 0 for all isolated sims and one host of paired sims; 1 for the other host
     

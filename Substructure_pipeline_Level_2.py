@@ -12,7 +12,7 @@ import h5py
 import pickle
 from collections import Counter
 from tqdm import tqdm
-
+from scipy.spatial import KDTree
 
 
 
@@ -61,11 +61,10 @@ def distance_cut(pos_stars, dcut=120):
     boolean True or False
     '''
     N = len(pos_stars[:,0])
-    for i in range(N-1):
-        for j in range(i+1, N, 1):
-            dis = np.sqrt(((pos_stars[i] - pos_stars[j])**2).sum())
-            if dis > dcut:
-                return True
+    for i in range(N):
+        dis = np.sqrt(((pos_stars - pos_stars[i])**2).sum(axis=1))
+        if(np.max(dis) > dcut):
+            return True
     return False
 
 
@@ -76,7 +75,7 @@ def distance_cut(pos_stars, dcut=120):
 #-------------------------------------------------
 
 # pick out N closest stars in phase-space
-def pick_closest_phase_space(pos, pos_hal, vel, vel_hal, N = 20):
+def pick_closest_phase_space(pos, vel, N = 20):
     '''
     pick out N closest stars in phase-space to a star particle at
     position pos_hal and velocity vel_hal
@@ -96,14 +95,10 @@ def pick_closest_phase_space(pos, pos_hal, vel, vel_hal, N = 20):
     '''
 
     # compute distance for all stars in the stream
-    d_hal = np.tile(pos_hal, len(pos)).reshape((len(pos),3))
-    d_star = pos
-    d_star_hal = np.sqrt(((d_hal - d_star)**2).sum(axis=1))
+    d_star_hal = np.sqrt(((pos_hal - pos)**2).sum(axis=1))
 
     # velocity space
-    v_hal = np.tile(vel_hal, len(pos)).reshape((len(pos),3))
-    v_star = vel
-    v_star_hal = np.sqrt(((v_hal - v_star)**2).sum(axis=1))
+    v_star_hal = np.sqrt(((vel_hal - vel)**2).sum(axis=1))
 
     sigma_x = np.std(d_star_hal)
     sigma_v = np.std(v_star_hal)
@@ -114,6 +109,22 @@ def pick_closest_phase_space(pos, pos_hal, vel, vel_hal, N = 20):
     return (d_tot.argsort())[:N]
 
 
+def pick_closest_phase_space_KDTree(pos, vel, N=20):
+
+    # Combine position and velocity arrays
+    data = np.concatenate((pos, vel), axis=1)
+
+    # Build KD-tree
+    tree = KDTree(data)
+
+    # Query nearest neighbors for each particle
+    nearest_neighbors = []
+    for i in range(len(data)):
+        dists, indices = tree.query(data[i], k=N)
+        # Exclude the first element (self) from the indices
+        nearest_neighbors.append(indices[0:].tolist())
+
+    return nearest_neighbors
 
 
 def pick_closest_real_space(pos, pos_hal, N = 20):
@@ -135,9 +146,7 @@ def pick_closest_real_space(pos, pos_hal, N = 20):
     '''
 
     # compute distance for all stars in the stream
-    d_hal = np.tile(pos_hal, len(pos)).reshape((len(pos),3))
-    d_star = pos
-    d_star_hal = np.sqrt(((d_hal - d_star)**2).sum(axis=1))
+    d_star_hal = np.sqrt(((pos_hal - pos)**2).sum(axis=1))
 
     return (d_star_hal.argsort())[:N]
 
@@ -149,7 +158,7 @@ def find_vel_dis_real(j,pos, vel, N=20):
     close = pick_closest_real_space(pos, pos[j], N=N)
 
     dispersions = np.std(vel[close], axis=0)
-    dis = np.sqrt((dispersions**2).sum())
+    dis = np.linalg.norm(dispersions)
 
     return dis
 
@@ -169,7 +178,7 @@ def dispersion_cut_threshold(stellar_mass):
     output
     the treshold value
 
-    The values come of Panithanpaisal et al. (2021)
+    The values come from Panithanpaisal et al. (2021)
     '''
     cut = -5.275459682837681*np.log10(stellar_mass) + 53.550272108698486
     return cut
@@ -185,7 +194,14 @@ def find_vel_dis(i, pos, vel, N=20):
     close = pick_closest_phase_space(pos, pos[i], vel, vel[i], N=N)
 
     dispersions = np.std(vel[close], axis=0)
-    dis = np.sqrt((dispersions**2).sum())
+    dis = np.linalg.norm(dispersions)
+
+    return dis
+
+def find_vel_dis_KDTree(vel, close):
+
+    dispersions = np.std(vel[close], axis=0)
+    dis = np.linalg.norm(dispersions)
 
     return dis
 
@@ -211,9 +227,14 @@ def dispersion_cut(pos, vel, stellar_mass):
     if n < 300:
         N = 7
 
+    #local_dispersion = np.zeros(n)
+    #for i in range(n):
+    #    local_dispersion[i] = find_vel_dis(i, pos, vel, N=N)
+    close = pick_closest_phase_space_KDTree(pos, vel, N=N)
+    #local_dispersion = Parallel(n_jobs=-1)(delayed(find_vel_dis_KDTree)(vel, close[i]) for i in range(n))
     local_dispersion = np.zeros(n)
     for i in range(n):
-        local_dispersion[i] = find_vel_dis(i, pos, vel, N=N)
+        local_dispersion[i] = find_vel_dis_KDTree(vel, close[i])
 
     # median value is
     med = np.median(local_dispersion)
@@ -283,7 +304,8 @@ def classify_substructures(unclassified, host_no, simdir):
             if(mean_pos <= rad):
                 
                 if(distance_cut(pos)):
-                    
+
+                    print(vel.shape)
                     if(dispersion_cut(pos, vel, m_st)):
                         
                         stream.append(True)

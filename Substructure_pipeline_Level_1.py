@@ -161,7 +161,7 @@ def find_infall_snapshots(halo_tree, halo_tid, last_snap=600, host_no=0):
 #------------------------------------------
 # Star particle tracking functions
 #------------------------------------------
-def find_present_stars_ind(simdir, snap, st_i, last_snap=600, host_no=0):
+def find_present_stars_ind(simdir, snap, st_i, last_snap=600):
     '''
     find indices of stars at present day (aka snap = last_snap)
     
@@ -175,17 +175,14 @@ def find_present_stars_ind(simdir, snap, st_i, last_snap=600, host_no=0):
     try:
         # execute this when the simulations don't have star_gas_pointers_XYZ.hdf5
         #print('opening:', simdir + 'track/star_indices_{:03}.hdf5'.format(snap))
-        with h5py.File(simdir + 'track/star_indices_{:03}.hdf5'.format(snap), 'r') as pt:
-            bool_stream = np.isin(pt['indices'],st_i)
+        with h5py.File(simdir + 'track/star_gas_pointers_{:03}.hdf5'.format(snap), 'r') as pt:
+            bool_stream = np.isin(pt['z0.to.z.index'][:],st_i)
             #print('success')
         ind = np.where(bool_stream)[0] #gives the positions of the stars we are tracking in the list at snap 600
 
     except Exception as e:
-        #print(e)
-        if(host_no == 0):
-            part = gizmo.io.Read.read_snapshots(['star'], 'snapshot', snap, sim, assign_formation_coordinates=True);
-        else:
-            part = gizmo.io.Read.read_snapshots(['star'], 'snapshot', snap, sim, host_number=2, assign_formation_coordinates=True);
+        print(e)
+        part = gizmo.io.Read.read_snapshots(['star'], 'index', snap, simdir, assign_pointers=True);
         pointers = part.Pointer.get_pointers(species_name_from='star', species_names_to='star', forward=True)
         ind = pointers[st_i]
         #part = read_part(sim, snap, pointer=True)
@@ -357,7 +354,7 @@ def find_streams(simdir, last_snap, start_snap, snap_interval=10,  host_no=0, ha
             #print('doing {}/{}'.format(count, len(h_with_stars)))
 
             # add infall times
-            infall_snaps, infall_snaps_i = find_infall_snapshots(halo_tree, i, last_snap=last_snap)
+            infall_snaps, infall_snaps_i = find_infall_snapshots(halo_tree, i, last_snap=last_snap, host_no=host_no)
             if len(infall_snaps) == 0:
                 continue
             elif halo_tree['star.mass'][infall_snaps_i[0]] < 0:
@@ -397,7 +394,7 @@ def find_streams(simdir, last_snap, start_snap, snap_interval=10,  host_no=0, ha
 #-----------------------------------------
 # location of the outputs to be saved
 SAVE_LOC = '/data9/work/Aritra/substructure_catalogs/'   # Save location of the catalogs (change accordingly)
-rockdir = 'halo/rockstar_dm/'                     # Halo directory (change accordingly)
+rockdir = 'halo/rockstar_dm_highZ/'                     # Halo directory (change accordingly)
 
 #------------------------------------------------------------
 # Running the pipeline to get the unclassified substructures
@@ -408,12 +405,16 @@ def main(simname, start_snap, snap_interval, host_no):
     # simname = Simulation name
     if(simname == 'm12_elvis_RomeoJuliet_res3500' or simname == 'm12_elvis_ThelmaLouise_res4000' or simname == 'm12_elvis_RomulusRemus_res4000'):
         simdir = f'/data11/fire2-pairs/{simname}/'       # Simulation directory
+        if(host_no == 0):
+            filename = f'{simname}_cdm_unclassified_host1.pkl'     # Filename of output to be saved
+        else:
+            filename = f'{simname}_cdm_unclassified_host2.pkl'     # Filename of output to be saved
     else:
         simdir = f'/data10/fire2/metaldiff/{simname}/'   # Simulation directory
+        filename = f'{simname}_cdm_unclassified.pkl'     # Filename of output to be saved
     
     # host_no = 0 for all isolated sims and one host of paired sims; 1 for the other host
     
-    filename = f'{simname}_cdm_unclassified.pkl'     # Filename of output to be saved
     fsave = SAVE_LOC + filename                      # Location of output
     
     last_snap = 600                                  # Final snapshot

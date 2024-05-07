@@ -389,11 +389,11 @@ def main(simname, host_no):
 
     if(simname == 'm12_elvis_RomeoJuliet_res3500' or simname == 'm12_elvis_ThelmaLouise_res4000' or simname == 'm12_elvis_RomulusRemus_res4000'):
         if(host_no == 0): 
-            unclassified_filename = f'{simname}_cdm_unclassified_host1.pkl'
+            unclassified_filename = f'{simname}_cdm_unclassified_lvl_2_host1.pkl'
         else:
-            unclassified_filename = f'{simname}_cdm_unclassified_host2.pkl'
+            unclassified_filename = f'{simname}_cdm_unclassified_lvl_2_host2.pkl'
     else:
-        unclassified_filename = f'{simname}_cdm_unclassified.pkl'     # Unclassified file
+        unclassified_filename = f'{simname}_cdm_unclassified_lvl_2.pkl'     # Unclassified file
         
     unclassified_fsave = SAVE_LOC + unclassified_filename         # Directory of the unclassified file
     

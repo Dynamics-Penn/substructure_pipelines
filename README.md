@@ -24,6 +24,6 @@ host_no = 0 for all isolated sims and the most massive halo in paired sims; 1 fo
 
 
 
-Level 3 - Upto the user. The level 2 code will generate a classfified catalog according to the classification algorithm. But some manual reclassification might be needed depending on the use case.
+Level 3 - Up to the user. The level 2 code will generate a classfified catalog according to the classification algorithm. But some manual reclassification might be needed depending on the use case.
 
-Upto level 1 and 2, one can just run the script with the necessary changes in the parameters and path to files. It will be lot more efficient to run the scripts using bash if you are running them for multiple simulations on the cluster. 
+Up to level 1 and 2, one can just run the script with the necessary changes in the parameters and path to files. It will be lot more efficient to run the scripts using bash if you are running them for multiple simulations on the cluster. 
